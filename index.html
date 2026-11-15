@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FILMAX - Top Streaming Moments</title>
+  <link rel="icon" type="image/svg+xml" href="filmax-logo.svg" />
+  <link rel="apple-touch-icon" href="filmax-logo.svg" />
+  <link rel="preload" as="image" href="filmax-logo-source.png" fetchpriority="high" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind Config Customization -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fafafa',
+              100: '#f4f4f5',
+              400: '#d4d4d8',
+              500: '#a3a3a3',
+              600: '#404040',
+              700: '#262626',
+              accent: '#e5e5e5'
+            },
+            slate: {
+              300: '#7389da',
+              400: '#7b8dc0',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              850: '#171717',
+              900: '#0a0a0a',
+              950: '#050505'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Alpine.js CDN -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body x-data="filmaxApp()" :class="siteIntroVisible ? 'overflow-hidden' : ''" class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-brand-600 selection:text-white">
+
+  <div x-show="siteIntroVisible" x-transition:enter="transition-opacity duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @keydown.escape.window="finishIntro()" role="dialog" aria-modal="true" aria-label="Welcome to FILMAX" class="filmax-intro fixed inset-0 z-[999] flex items-center justify-center overflow-hidden p-4 sm:p-8">
+    <div class="filmax-intro-stage relative z-10 w-full overflow-hidden">
+      <img src="filmax-logo-source.png" alt="FILMAX" width="1024" height="512" fetchpriority="high" decoding="async" class="filmax-intro-art absolute inset-0 h-full w-full object-cover" />
+      <div class="filmax-intro-vignette absolute inset-0" aria-hidden="true"></div>
+      <button @click="finishIntro()" class="filmax-intro-skip absolute right-4 top-4 z-20 rounded-full border border-white/25 bg-black/35 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-6 sm:top-6">Skip intro</button>
+      <div class="filmax-intro-copy absolute inset-x-0 bottom-0 z-10 flex flex-col items-start p-6 text-left sm:p-10 md:p-14">
+        <p class="mb-3 text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-200 sm:text-xs">Movies · Series · Stories</p>
+        <h1 class="filmax-intro-title text-4xl font-extrabold text-white sm:text-6xl md:text-7xl">Stories start here.</h1>
+        <p class="mt-3 max-w-md text-sm leading-relaxed text-slate-200 sm:text-base">Your next favorite is waiting.</p>
+        <button @click="finishIntro()" class="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-cyan-300 px-5 text-sm font-bold text-slate-950 shadow-[0_8px_28px_rgba(34,211,238,0.2)] transition hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-slate-950">
+          <i data-lucide="play" class="h-4 w-4 fill-current"></i>
+          <span>Start watching</span>
+        </button>
+      </div>
+      <div class="filmax-intro-progress absolute inset-x-0 bottom-0 z-20 h-1" aria-hidden="true"><span></span></div>
+    </div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header @scroll.window.throttle.100ms="isScrolled = window.scrollY > 24" :class="isScrolled ? 'border-slate-800/70 bg-black/95 shadow-lg shadow-black/20 backdrop-blur-md' : 'border-transparent bg-transparent shadow-none'" class="sticky top-0 z-40 border-b transition-all duration-300">
+    <div class="filmax-header-inner flex h-14 w-full items-center justify-between gap-1 pl-1 pr-2.5 sm:gap-4 sm:pl-2 sm:pr-6 lg:pl-3 lg:pr-8">
+      <button @click="sidebarOpen = !sidebarOpen" :aria-expanded="sidebarOpen" :aria-label="sidebarOpen ? 'Close sidebar' : 'Open sidebar'" :title="sidebarOpen ? 'Close sidebar' : 'Open sidebar'" class="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 text-slate-300 transition hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:flex">
+        <i data-lucide="menu" class="h-5 w-5"></i>
+      </button>
+      <a href="#" @click.prevent="resetFilters()" class="filmax-header-brand group flex shrink-0 items-center gap-2.5">
+        <img src="filmax-logo.svg" alt="" class="h-8 w-9 shrink-0 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.35)] transition-transform group-hover:scale-105 sm:h-9 sm:w-11" />
+        <span class="flex flex-col gap-0.5">
+          <span class="text-[15px] font-extrabold leading-none tracking-[0.12em] text-white sm:text-lg">FILMAX</span>
+          <span class="filmax-header-tagline text-[7px] font-medium uppercase leading-none tracking-[0.22em] text-slate-300">Streaming Site</span>
+        </span>
+      </a>
+
+         <nav class="hidden flex-wrap items-center justify-center gap-0.5 px-3 py-1 xl:flex xl:gap-1" aria-label="Movie categories">
+      <button @click="navigateTo('trending')" title="Trending" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="trending-up" class="h-3.5 w-3.5"></i><span>Trending</span></button>
+      <button @click="navigateTo('community')" title="Community" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="users-round" class="h-3.5 w-3.5"></i><span>Community</span></button>
+      <button @click="navigateTo('movie')" title="Movie" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="clapperboard" class="h-3.5 w-3.5"></i><span>Movie</span></button>
+      <button @click="navigateTo('tv')" title="TV" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="tv" class="h-3.5 w-3.5"></i><span>TV</span></button>
+      <button @click="navigateTo('anime')" title="Anime" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="sparkles" class="h-3.5 w-3.5"></i><span>Anime</span></button>
+      <button @click="navigateTo('shorttv')" title="ShortTV" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="clapperboard" class="h-3.5 w-3.5"></i><span>ShortTV</span></button>
+      <button @click="navigateTo('kids')" title="Kids" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="baby" class="h-3.5 w-3.5"></i><span>Kids</span></button>
+      <button @click="genrePanelOpen = !genrePanelOpen" :aria-expanded="genrePanelOpen" title="All Genres" class="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-white/10 hover:text-white lg:px-2.5 lg:text-xs"><i data-lucide="layers-3" class="h-3.5 w-3.5"></i><span>All Genres</span></button>
+    </nav>
+
+      <div class="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-3">
+        <div :class="searchMenuOpen ? 'filmax-search-expanded' : ''" class="filmax-header-search relative w-20 min-w-0 sm:w-24 md:w-28 lg:w-44 xl:w-64 2xl:w-80">
+          <button type="button" @click="openSearchExplore()" aria-label="Open explore search" title="Search titles" class="filmax-search-trigger absolute left-2.5 top-1/2 z-10 flex -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+            <i data-lucide="search" class="h-4 w-4"></i>
+          </button>
+          <input type="text" x-model="searchQuery" @focus="searchMenuOpen = true" @blur="setTimeout(() => searchMenuOpen = false, 150)" placeholder="Search movies, TV shows..." class="filmax-search-input w-full rounded-xl border border-slate-700/60 bg-slate-800/80 py-2 pl-9 pr-10 text-sm text-slate-200 placeholder-slate-400 transition-all focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+          <button type="button" @click="toggleVoiceSearch()" :aria-label="isVoiceSearching ? 'Stop voice search' : 'Start voice search'" :title="isVoiceSearching ? 'Stop voice search' : 'Voice search'" class="filmax-voice-search absolute right-2.5 top-1/2 -translate-y-1/2 transition hover:text-white" :class="isVoiceSearching ? 'animate-pulse text-rose-400' : 'text-slate-400'"><i :data-lucide="isVoiceSearching ? 'mic-off' : 'mic'" class="h-4 w-4"></i></button>
+          <button x-show="searchQuery" @click="searchQuery = ''" aria-label="Clear search" class="filmax-search-clear absolute right-10 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"><i data-lucide="x" class="h-4 w-4"></i></button>
+
+          <div x-show="searchMenuOpen" x-transition class="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl shadow-black/30 backdrop-blur-md">
+            <div class="max-h-80 overflow-y-auto py-2">
+              <template x-if="searchSuggestions.length">
+                <template x-for="suggestion in searchSuggestions" :key="suggestion.id || suggestion.label">
+                  <button @click="selectSearchSuggestion(suggestion)" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left transition hover:bg-white/5">
+                    <template x-if="suggestion.type === 'title' && suggestion.item">
+                      <div class="flex min-w-0 items-center gap-3">
+                        <img :src="suggestion.item.poster || suggestion.item.backdrop" :alt="suggestion.item.title" class="h-12 w-8 rounded-md object-cover" />
+                        <div class="min-w-0">
+                          <div class="truncate text-sm font-medium text-slate-100" x-text="suggestion.item.title"></div>
+                          <div class="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
+                            <span x-text="suggestion.item.year"></span>
+                            <span>•</span>
+                            <span x-text="suggestion.item.rating"></span>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                    <template x-if="suggestion.type !== 'title'">
+                      <div class="flex min-w-0 items-center gap-2">
+                        <span class="rounded bg-white/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300" x-text="suggestion.badge"></span>
+                        <span class="truncate text-sm text-slate-100" x-text="suggestion.label"></span>
+                      </div>
+                    </template>
+                    <i data-lucide="arrow-up-right" class="h-3.5 w-3.5 text-slate-400"></i>
+                  </button>
+                </template>
+              </template>
+              <template x-if="!searchSuggestions.length">
+                <div class="px-4 py-3 text-sm text-slate-400" x-text="searchLoading ? 'Searching titles...' : 'No matching titles found'"></div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div class="filmax-header-actions flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div class="filmax-app-control relative hidden sm:inline-flex" @mouseenter="appPopoverOpen = true" @mouseleave="appPopoverOpen = false" @focusin="appPopoverOpen = true" @focusout="if (!$el.contains($event.relatedTarget)) appPopoverOpen = false">
+            <button type="button" aria-label="Get mobile app" title="Get mobile app"
+              :aria-expanded="appPopoverOpen" aria-haspopup="true" aria-controls="filmax-app-popover"
+              class="h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-200 transition hover:border-white/35 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 flex 2xl:w-auto 2xl:gap-2 2xl:px-3">
+              <i data-lucide="smartphone" class="h-4 w-4"></i>
+              <span class="hidden 2xl:inline">Get app</span>
+            </button>
+            <div id="filmax-app-popover" x-show="appPopoverOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" role="region" aria-label="FILMAX app link" class="filmax-app-popover absolute top-full z-50 mt-2 w-64 rounded-2xl border border-white/15 bg-slate-950/98 p-5 shadow-2xl shadow-black/40 backdrop-blur-xl">
+              <div class="flex flex-col items-center gap-3">
+                <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(window.location.href)" alt="QR code for FILMAX" width="128" height="128" class="rounded-lg border border-white/10 bg-white/5" loading="lazy" />
+                <p class="text-xs text-slate-300 text-center">Scan to open FILMAX on your device</p>
+                <div class="flex gap-2 mt-2">
+                  <button type="button" class="filmax-app-popover-btn" @click="copyAppLink()"><i data-lucide="copy" class="h-4 w-4"></i> Copy link</button>
+                  <a :href="window.location.href" target="_blank" rel="noopener noreferrer" class="filmax-app-popover-btn"><i data-lucide="external-link" class="h-4 w-4"></i> Open</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <a href="auth.html?mode=login" target="_blank" rel="noopener noreferrer" aria-label="Log in (opens in a new tab)" title="Log in" class="filmax-account-button inline-flex h-9 w-9 items-center justify-center gap-2 rounded-full text-sm font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 xl:w-auto xl:px-3"><i data-lucide="user-round" class="h-4 w-4"></i><span class="hidden xl:inline">Log in</span></a>
+          <a href="auth.html?mode=signup" target="_blank" rel="noopener noreferrer" aria-label="Sign in (opens in a new tab)" title="Sign in" class="filmax-account-button inline-flex h-9 w-9 items-center justify-center gap-2 rounded-full text-sm font-bold no-underline shadow-lg shadow-black/30 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 xl:w-auto xl:px-3"><i data-lucide="user-round-plus" class="h-4 w-4"></i><span class="hidden xl:inline">Sign in</span></a>
+          <button @click="mobileMenuOpen = !mobileMenuOpen" :aria-expanded="mobileMenuOpen" aria-controls="mobile-navigation-drawer" :aria-label="mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'" class="rounded-lg bg-slate-800/60 p-2 text-slate-300 hover:text-white xl:hidden"><i data-lucide="menu" class="h-5 w-5"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div x-show="genrePanelOpen" x-transition :class="sidebarOpen ? 'md:pl-60' : 'md:pl-20'" class="flex h-14 items-center border-t border-white/10 bg-black/95 px-4">
+      <div x-show="genresLoading" class="flex w-full flex-wrap gap-1.5" role="status" aria-label="Loading genres">
+        <span class="sr-only">Loading genres...</span>
+        <div class="filmax-skeleton h-7 w-16 rounded-full"></div>
+        <div class="filmax-skeleton h-7 w-20 rounded-full"></div>
+        <div class="filmax-skeleton h-7 w-16 rounded-full"></div>
+      </div>
+      <div x-show="!genresLoading" class="flex w-full min-w-0 items-center gap-1.5">
+        <button x-show="canScrollGenresLeft" @click="scrollGenres(-1)" aria-label="Show previous genres" title="Show previous genres" class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/10 text-slate-200 transition hover:bg-white/20">
+          <i data-lucide="chevron-left" class="h-4 w-4"></i>
+        </button>
+        <nav x-ref="genreScroller" x-init="$nextTick(() => updateGenreScroll())" x-effect="if (!genresLoading && genrePanelOpen) $nextTick(() => updateGenreScroll())" @scroll.passive="updateGenreScroll()" @resize.window.debounce.100ms="updateGenreScroll()" class="filmax-genre-row flex min-w-0 flex-1 items-center gap-1.5 text-xs" aria-label="All genres">
+          <button @click="setGenre(''); genrePanelOpen = false" :class="!activeGenre ? 'bg-white text-black' : 'bg-white/10 text-slate-200 hover:bg-white/20'" class="flex-none whitespace-nowrap rounded-full px-3 py-1 font-medium transition">All Genres</button>
+          <template x-for="genre in genres" :key="genre">
+            <button @click="setGenre(genre); genrePanelOpen = false" :class="activeGenre === genre ? 'bg-white text-black' : 'bg-white/10 text-slate-200 hover:bg-white/20'" class="flex-none whitespace-nowrap rounded-full px-3 py-1 font-medium transition" x-text="genre"></button>
+          </template>
+        </nav>
+        <button x-show="canScrollGenresRight" @click="scrollGenres(1)" aria-label="Show more genres" title="Show more genres" class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-white/10 text-slate-200 transition hover:bg-white/20">
+          <i data-lucide="chevron-right" class="h-4 w-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <aside :class="[sidebarOpen ? 'w-56' : 'w-16', genrePanelOpen ? 'z-[45]' : 'z-30']" class="filmax-sidebar group fixed bottom-0 left-0 top-14 hidden flex-col border-r border-white/10 bg-black px-2 py-3 shadow-[0_20px_45px_rgba(2,6,23,0.55)] backdrop-blur-xl transition-all duration-300 md:flex" aria-label="Sidebar navigation">
+    <nav class="flex flex-col gap-1.5" aria-label="Main">
+      <template x-for="item in sidebarMainItems" :key="item.id">
+        <button @click="navigateSidebar(item.id)" :title="item.label" :aria-label="item.label" class="filmax-sidebar-item flex h-11 w-full shrink-0 items-center gap-3 overflow-hidden rounded-xl px-3 text-left text-slate-300 transition-all duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+          <i :data-lucide="item.icon" class="h-5 w-5 shrink-0"></i>
+          <span x-text="item.label" :class="sidebarOpen ? 'max-w-44 opacity-100' : 'max-w-0 opacity-0'" class="overflow-hidden whitespace-nowrap text-sm transition-all duration-300"></span>
+        </button>
+      </template>
+    </nav>
+    <nav class="mt-auto flex flex-col gap-1.5 border-t border-white/10 pt-3" aria-label="Account">
+      <template x-for="item in sidebarAccountItems" :key="item.id">
+        <button @click="navigateSidebar(item.id)" :title="item.label" :aria-label="item.label" class="filmax-sidebar-item flex h-11 w-full shrink-0 items-center gap-3 overflow-hidden rounded-xl px-3 text-left text-slate-300 transition-all duration-200 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
+          <i :data-lucide="item.icon" class="h-5 w-5 shrink-0"></i>
+          <span x-text="item.label" :class="sidebarOpen ? 'max-w-44 opacity-100' : 'max-w-0 opacity-0'" class="overflow-hidden whitespace-nowrap text-sm transition-all duration-300"></span>
+        </button>
+      </template>
+    </nav>
+  </aside>
+
+  <div x-show="mobileMenuOpen" x-transition.opacity @keydown.escape.window="mobileMenuOpen = false" id="mobile-navigation-drawer" role="dialog" aria-modal="true" aria-label="Mobile navigation" class="fixed inset-x-0 bottom-0 top-14 z-30 xl:hidden">
+    <button @click="mobileMenuOpen = false" aria-label="Close navigation menu" class="absolute inset-0 h-full w-full bg-black/65"></button>
+    <aside x-show="mobileMenuOpen" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="relative flex h-full w-80 max-w-[86vw] flex-col overflow-y-auto border-r border-white/10 bg-slate-950 px-4 py-4 shadow-2xl shadow-black/50">
+      <div class="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
+        <span class="text-sm font-bold uppercase tracking-[0.16em] text-slate-300">Browse FILMAX</span>
+        <button @click="mobileMenuOpen = false" aria-label="Close navigation menu" class="rounded-lg p-2 text-slate-300 hover:bg-white/10 hover:text-white">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <nav class="flex flex-col gap-1" aria-label="Movie categories">
+        <button @click="navigateTo('trending')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="trending-up" class="h-5 w-5"></i>Trending</button>
+        <button @click="navigateTo('community')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="users-round" class="h-5 w-5"></i>Community</button>
+        <button @click="navigateTo('movie')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="clapperboard" class="h-5 w-5"></i>Movie</button>
+        <button @click="navigateTo('tv')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="tv" class="h-5 w-5"></i>TV</button>
+        <button @click="navigateTo('anime')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="sparkles" class="h-5 w-5"></i>Anime</button>
+        <button @click="navigateTo('shorttv')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="clapperboard" class="h-5 w-5"></i>ShortTV</button>
+        <button @click="navigateTo('kids')" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="baby" class="h-5 w-5"></i>Kids</button>
+        <button @click="genrePanelOpen = !genrePanelOpen; mobileMenuOpen = false" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i data-lucide="layers-3" class="h-5 w-5"></i>All Genres</button>
+      </nav>
+      <nav class="mt-3 flex flex-col gap-1 border-t border-white/10 pt-3" aria-label="Sidebar navigation">
+        <template x-for="item in sidebarMainItems" :key="item.id">
+          <button @click="navigateSidebar(item.id)" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i :data-lucide="item.icon" class="h-5 w-5 shrink-0"></i><span x-text="item.label"></span></button>
+        </template>
+      </nav>
+      <nav class="mt-auto flex flex-col gap-1 border-t border-white/10 pt-3" aria-label="Account">
+        <template x-for="item in sidebarAccountItems" :key="item.id">
+          <button @click="navigateSidebar(item.id)" class="flex min-h-11 items-center gap-3 rounded-xl px-3 text-left text-sm text-slate-200 hover:bg-white/10"><i :data-lucide="item.icon" class="h-5 w-5 shrink-0"></i><span x-text="item.label"></span></button>
+        </template>
+      </nav>
+    </aside>
+  </div>
+  <div x-show="sidebarNotice" x-text="sidebarNotice" role="status" class="fixed bottom-5 left-5 z-50 rounded-lg border border-white/15 bg-slate-900 px-4 py-3 text-sm text-slate-100 shadow-xl md:left-20"></div>
+
+  <main :class="watchingItem ? (sidebarOpen ? 'px-0 py-0 md:pl-60 md:pr-0' : 'px-0 py-0 md:pl-20 md:pr-0') : 'px-2.5 py-3 sm:px-4 md:pl-20 md:pr-3 lg:pr-4'" class="filmax-main relative z-0 w-full max-w-none space-y-6 sm:space-y-8">
+
+    <section x-show="!watchingItem && !activeGenre && currentTab === 'home' && isLoading && !featuredMovie.id" class="filmax-hero-loading relative -mt-20 overflow-hidden rounded-b-2xl p-4 sm:p-6" role="status" aria-label="Loading featured title">
+      <div class="filmax-skeleton absolute inset-0"></div>
+      <div class="relative mt-40 max-w-xl space-y-3 sm:mt-56">
+        <div class="filmax-skeleton h-5 w-28 rounded"></div>
+        <div class="filmax-skeleton h-9 w-3/4 rounded sm:h-12"></div>
+        <div class="filmax-skeleton h-4 w-full rounded"></div>
+        <div class="filmax-skeleton h-4 w-5/6 rounded"></div>
+      </div>
+      <span class="sr-only">Loading featured titles...</span>
+    </section>
+
+    <section x-show="watchingItem" :class="sidebarOpen ? 'md:left-60' : 'md:left-20'" class="filmax-watch-page fixed inset-0 z-20 overflow-hidden bg-black" aria-label="Movie trailer">
+      <div class="absolute inset-x-0 top-0 z-10 flex items-center gap-4 bg-gradient-to-b from-black/85 to-transparent px-3 py-3 sm:px-5">
+        <button @click="closeWatchPage()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition hover:bg-white/10" aria-label="Back to movies">
+          <i data-lucide="arrow-left" class="h-5 w-5"></i>
+        </button>
+        <div class="min-w-0">
+          <h1 class="truncate text-2xl font-bold text-white sm:text-3xl" x-text="watchingItem?.title"></h1>
+          <p class="text-sm text-slate-400" x-text="watchingItem?.year + ' · Official trailer'"></p>
+        </div>
+      </div>
+
+      <div class="absolute inset-0 bg-black">
+        <div x-show="watchLoading" class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-300" role="status">
+          <span class="filmax-loading-spinner h-8 w-8" aria-hidden="true"></span>
+          <span>Loading trailer...</span>
+        </div>
+        <iframe x-show="watchTrailerKey" :src="watchTrailerKey ? 'https://www.youtube-nocookie.com/embed/' + watchTrailerKey + '?autoplay=1&mute=1&rel=0' : ''" :title="'Official trailer for ' + (watchingItem?.title || '')" class="absolute inset-0 h-full w-full" allow="autoplay; encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div x-show="watchError" class="absolute inset-0 flex items-center justify-center p-6 text-center text-sm text-slate-300" role="status" x-text="watchError"></div>
+      </div>
+    </section>
+
+    <!-- Hero Featured Carousel/Banner -->
+    <section x-show="!watchingItem && !activeGenre && currentTab === 'home' && featuredMovie.id" @mouseenter="isFeaturedPaused = true" @mouseleave="isFeaturedPaused = false" class="filmax-hero relative z-0 -mt-20 w-full overflow-hidden bg-slate-950 shadow-2xl shadow-black/40">
+      <div class="filmax-hero-frame relative">
+        <img :src="featuredMovie.backdrop || featuredMovie.poster" :alt="featuredMovie.title" class="absolute inset-0 h-full w-full object-cover" />
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/45 to-slate-950/10"></div>
+        <div class="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-slate-950/45 via-slate-950/15 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-slate-950/20"></div>
+
+        <div class="filmax-hero-content relative mx-auto flex h-full max-w-7xl flex-col justify-end gap-4 px-4 pb-6 sm:gap-5 sm:px-6 sm:pb-8 md:pl-8 lg:flex-row lg:items-end lg:justify-between lg:px-8 lg:pb-10">
+          <div class="max-w-2xl space-y-3 sm:space-y-4">
+            <div class="flex flex-wrap items-center gap-2.5 text-xs font-medium">
+              <span class="rounded-md bg-brand-600 px-2.5 py-1 font-bold uppercase text-white">Featured</span>
+              <span class="flex items-center gap-1 font-bold text-brand-400">
+                <i data-lucide="star" class="h-3.5 w-3.5 fill-brand-400"></i>
+                <span x-text="featuredMovie.rating"></span>
+              </span>
+              <span class="text-slate-200" x-text="featuredMovie.year"></span>
+              <span class="rounded border border-white/15 bg-black/30 px-2 py-0.5 text-slate-200" x-text="featuredMovie.quality"></span>
+              <span class="text-[10px] font-bold uppercase tracking-wider text-white/75">Official Trailer</span>
+            </div>
+
+            <h1 class="filmax-hero-title text-2xl font-black leading-tight text-white sm:text-4xl lg:text-5xl" x-text="featuredMovie.title"></h1>
+            <p class="line-clamp-3 max-w-xl text-sm leading-relaxed text-slate-200 sm:text-base" x-text="featuredMovie.description"></p>
+
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button x-show="featuredMovie.trailerUrl" @click="openWatchPage(featuredMovie)" :aria-label="'Play official trailer for ' + featuredMovie.title" class="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-brand-600/25 transition-colors hover:bg-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                <i data-lucide="play" class="h-4 w-4 fill-white"></i>
+                <span>Play Trailer</span>
+              </button>
+              <span x-show="featuredTrailerLoading && !featuredMovie.trailerUrl" class="flex items-center gap-2 rounded-xl border border-white/20 bg-black/40 px-4 py-2.5 text-sm text-slate-300" role="status"><span class="filmax-loading-spinner h-4 w-4" aria-hidden="true"></span>Checking trailer...</span>
+              <span x-show="!featuredTrailerLoading && !featuredMovie.trailerUrl" class="rounded-xl border border-white/20 bg-black/40 px-4 py-2.5 text-sm text-slate-300">Trailer unavailable</span>
+              <button @click="openDetails(featuredMovie)" class="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-brand-600/25 transition-colors hover:bg-brand-500">
+                <i data-lucide="info" class="h-4 w-4"></i>
+                <span>View Details</span>
+              </button>
+              <button @click="toggleWatchlist(featuredMovie)" class="flex items-center gap-2 rounded-xl border border-white/20 bg-black/40 px-4 py-2.5 font-medium text-white backdrop-blur transition-colors hover:bg-white/15">
+                <i data-lucide="bookmark" :class="isInWatchlist(featuredMovie.id) ? 'fill-brand-500 text-brand-500' : 'text-slate-200'" class="h-4 w-4"></i>
+                <span x-text="isInWatchlist(featuredMovie.id) ? 'In Watchlist' : 'Add to List'"></span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section x-show="!watchingItem && !activeGenre && currentTab === 'home' && featuredOptions.length" @mouseenter="isFeaturedPaused = true" @mouseleave="isFeaturedPaused = false" aria-label="Featured movie selection" class="space-y-5">
+      <h2 class="flex items-center gap-3 text-2xl font-black uppercase tracking-[0.18em] text-white sm:text-3xl">
+        <i data-lucide="compass" class="h-5 w-5 text-sky-400 sm:h-6 sm:w-6"></i>
+        <span class="bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent">MORE TO EXPLORE</span>
+      </h2>
+      <div class="filmax-explore-grid grid w-full grid-cols-3 gap-3 justify-items-stretch sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 sm:gap-4">
+        <template x-for="item in featuredOptions" :key="item.id">
+          <button @click="openTrailerPreview(item)" :aria-label="'Play trailer for ' + item.title" :title="item.title" class="group relative z-0 w-full min-w-0 text-left transition-transform duration-300 hover:z-10 hover:scale-105 focus-visible:z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950">
+            <div class="aspect-[2/3] overflow-hidden rounded-2xl border border-white/10 bg-slate-900 shadow-lg transition-all duration-300 group-hover:border-sky-400/70 group-hover:shadow-[0_0_24px_rgba(56,189,248,0.28)]">
+              <img :src="item.poster" :alt="item.title" class="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
+            </div>
+          </button>
+        </template>
+      </div>
+    </section>
+
+    <!-- Filters & Active Status Bar -->
+    <section x-show="!watchingItem && currentTab === 'sidebar'" class="mx-auto flex min-h-[50vh] w-full max-w-3xl items-center justify-center py-10" aria-live="polite">
+      <div class="w-full rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-center shadow-2xl sm:p-10">
+        <div class="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sky-300">
+          <i :data-lucide="sidebarPageContent[activeSidebarPage]?.icon" class="h-8 w-8"></i>
+        </div>
+        <h1 class="text-2xl font-black text-white sm:text-3xl" x-text="sidebarPageContent[activeSidebarPage]?.title"></h1>
+        <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-slate-300 sm:text-base" x-text="sidebarPageContent[activeSidebarPage]?.description"></p>
+        <button @click="navigateSidebar('home')" class="mt-6 rounded-xl bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/15" x-text="sidebarPageContent[activeSidebarPage]?.action"></button>
+      </div>
+    </section>
+
+    <h2 x-show="!watchingItem && currentTab !== 'sidebar'" class="filmax-section-heading section-heading-display flex items-center gap-2 text-2xl font-extrabold uppercase tracking-wider text-white sm:text-3xl">
+      <i :data-lucide="activeGenre ? 'layers-3' : (currentTab === 'watchlist' ? 'bookmark' : (currentTab === 'search' ? 'compass' : 'trending-up'))" class="h-6 w-6 shrink-0 text-sky-400 sm:h-7 sm:w-7"></i>
+      <span x-text="activeGenre ? activeGenre : (currentTab === 'watchlist' ? 'My Saved List' : (currentTab === 'search' ? 'Explore Search' : 'Trending Now'))"></span>
+    </h2>
+
+    <!-- Media Grid Listing -->
+    <section x-show="!watchingItem && currentTab !== 'sidebar'">
+      <div x-show="isLoading" class="space-y-4 py-3" role="status" aria-label="Loading titles">
+        <div class="flex items-center gap-3 text-sm text-slate-300">
+          <span class="filmax-loading-spinner h-5 w-5" aria-hidden="true"></span>
+          <span>Loading titles...</span>
+        </div>
+        <div class="flex gap-3 overflow-hidden">
+          <template x-for="placeholder in 5" :key="placeholder">
+            <div class="filmax-skeleton aspect-[2/3] w-[38vw] max-w-[150px] shrink-0 rounded-2xl"></div>
+          </template>
+        </div>
+      </div>
+
+      <div x-show="!isLoading && filteredMedia.length === 0" class="text-center py-20 space-y-4">
+        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mx-auto border border-slate-800">
+          <i data-lucide="film" class="w-8 h-8 text-slate-600"></i>
+        </div>
+        <p class="text-slate-400 text-lg" x-text="loadError || 'No movies or TV shows found matching your criteria.'"></p>
+        <button @click="loadError ? loadMedia(searchQuery.trim()) : resetFilters()" class="text-brand-500 hover:underline text-sm font-medium" x-text="loadError ? 'Try again' : 'Clear filters & search'"></button>
+      </div>
+
+      <div x-show="!isLoading && filteredMedia.length > 0" class="relative w-full">
+        <button x-show="filteredMedia.length > 1" @click="$refs.mediaScroller.scrollBy({ left: -Math.max($refs.mediaScroller.clientWidth * 0.8, 220), behavior: 'smooth' })" aria-label="Scroll to previous titles" class="filmax-carousel-control absolute left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-lg backdrop-blur transition hover:bg-sky-500 hover:text-slate-950">
+          <i data-lucide="chevron-left" class="h-5 w-5"></i>
+        </button>
+        <button x-show="filteredMedia.length > 1" @click="$refs.mediaScroller.scrollBy({ left: Math.max($refs.mediaScroller.clientWidth * 0.8, 220), behavior: 'smooth' })" aria-label="Scroll to more titles" class="filmax-carousel-control absolute right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-lg backdrop-blur transition hover:bg-sky-500 hover:text-slate-950">
+          <i data-lucide="chevron-right" class="h-5 w-5"></i>
+        </button>
+        <div x-ref="mediaScroller" class="media-scroller flex w-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 sm:gap-6">
+        <template x-for="item in filteredMedia" :key="item.id">
+          <div class="filmax-media-card group relative w-[70vw] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-900 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-sky-400/70 hover:shadow-[0_0_30px_rgba(56,189,248,0.28)] sm:w-52 md:w-56">
+            
+            <!-- Poster Wrapper -->
+            <div class="relative aspect-[2/3] overflow-hidden bg-slate-800">
+              <button @click="openTrailerPreview(item)" :aria-label="'Play trailer for ' + item.title" class="absolute inset-0 z-0 h-full w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
+                <img :src="item.poster" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" :alt="item.title" loading="lazy" />
+              </button>
+              
+              <!-- Hover Overlay -->
+              <div @click="openTrailerPreview(item)" class="filmax-card-overlay absolute inset-0 z-10 flex cursor-pointer flex-col justify-end bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                <button @click.stop="openDetails(item)" class="mb-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-2 text-xs font-semibold text-white shadow-md hover:bg-brand-500">
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i> View Details
+                </button>
+              </div>
+
+              <!-- Top Badges -->
+              <div class="absolute left-2 top-2 z-20 flex flex-col gap-1">
+                <span class="bg-slate-950/80 backdrop-blur-md text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-400/30 flex items-center gap-1">
+                  <i data-lucide="star" class="w-3 h-3 fill-amber-400"></i>
+                  <span x-text="item.rating"></span>
+                </span>
+              </div>
+
+              <!-- Watchlist Quick Button -->
+              <button @click.stop="toggleWatchlist(item)" class="absolute right-2 top-2 z-20 rounded-full border border-slate-800 bg-slate-950/80 p-1.5 text-white transition-colors hover:bg-brand-600">
+                <i data-lucide="bookmark" :class="isInWatchlist(item.id) ? 'fill-brand-500 text-brand-500' : 'text-slate-300'" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+
+          </div>
+        </template>
+        </div>
+      </div>
+    </section>
+
+    <template x-for="section in extraMovieSections" :key="section.id">
+      <section x-show="!watchingItem && !activeGenre && currentTab === 'home' && (section.loading || section.rows.some(row => row.items.length) || section.error)" class="space-y-4" :aria-label="section.title">
+        <h2 class="section-heading-display flex items-center gap-2 text-2xl font-extrabold uppercase tracking-wider text-white sm:text-3xl">
+          <i :data-lucide="section.icon" class="h-6 w-6 shrink-0 text-sky-400 sm:h-7 sm:w-7"></i>
+          <span x-text="section.title"></span>
+        </h2>
+        <p x-show="section.note" class="text-sm text-slate-400" x-text="section.note"></p>
+        <p x-show="section.error" role="status" class="rounded-xl border border-rose-400/20 bg-rose-400/5 px-4 py-3 text-sm text-rose-200" x-text="section.error"></p>
+        <div x-show="section.loading" class="space-y-3" role="status" :aria-label="'Loading ' + section.title">
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span class="filmax-loading-spinner h-4 w-4" aria-hidden="true"></span>
+            <span>Loading titles...</span>
+          </div>
+          <div class="flex gap-3 overflow-hidden">
+            <template x-for="placeholder in 4" :key="placeholder">
+              <div class="filmax-skeleton aspect-[2/3] w-[30vw] max-w-[150px] shrink-0 rounded-2xl"></div>
+            </template>
+          </div>
+        </div>
+          <div x-show="section.rows.some(row => row.items.length)" class="space-y-4">
+            <template x-for="row in section.rows" :key="row.id">
+              <div x-show="row.items.length" class="relative w-full">
+                <button @click="scrollCarousel(row.id, -1)" :aria-label="'Scroll ' + row.label + ' left'" class="filmax-carousel-control absolute left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-lg backdrop-blur transition hover:bg-sky-500 hover:text-slate-950">
+                  <i data-lucide="chevron-left" class="h-5 w-5"></i>
+                </button>
+                <button @click="scrollCarousel(row.id, 1)" :aria-label="'Scroll ' + row.label + ' right'" class="filmax-carousel-control absolute right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-lg backdrop-blur transition hover:bg-sky-500 hover:text-slate-950">
+                  <i data-lucide="chevron-right" class="h-5 w-5"></i>
+                </button>
+                <div :id="row.id" :aria-label="row.label" class="media-scroller flex w-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 sm:gap-6">
+                  <template x-for="item in row.items" :key="item.id">
+                    <div class="filmax-media-card group relative z-0 w-[70vw] max-w-[220px] shrink-0 snap-start overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-900 shadow-lg transition-all duration-300 hover:z-10 hover:scale-105 hover:border-sky-400/70 hover:shadow-[0_0_30px_rgba(56,189,248,0.28)] focus-within:z-10 focus-within:scale-105">
+                      <div class="relative aspect-[2/3] overflow-hidden bg-slate-800">
+                        <button @click="openTrailerPreview(item)" :aria-label="'Play trailer for ' + item.title" class="absolute inset-0 z-0 h-full w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">
+                          <img :src="item.poster" :alt="item.title" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                        </button>
+                        <div @click="openTrailerPreview(item)" class="filmax-card-overlay absolute inset-0 z-10 flex cursor-pointer flex-col justify-end bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                          <button @click.stop="openDetails(item)" class="mb-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-2 text-xs font-semibold text-white shadow-md hover:bg-brand-500">
+                            <i data-lucide="info" class="h-3.5 w-3.5"></i> View Details
+                          </button>
+                        </div>
+                        <span class="absolute left-2 top-2 z-20 flex items-center gap-1 rounded border border-amber-400/30 bg-slate-950/80 px-2 py-0.5 text-[10px] font-bold text-amber-400 backdrop-blur-md">
+                          <i data-lucide="star" class="h-3 w-3 fill-amber-400"></i>
+                          <span x-text="item.rating"></span>
+                        </span>
+                        <button @click.stop="toggleWatchlist(item)" :aria-label="'Toggle watchlist for ' + item.title" class="absolute right-2 top-2 z-20 rounded-full border border-slate-800 bg-slate-950/80 p-1.5 text-white transition-colors hover:bg-brand-600">
+                          <i data-lucide="bookmark" :class="isInWatchlist(item.id) ? 'fill-brand-500 text-brand-500' : 'text-slate-300'" class="h-3.5 w-3.5"></i>
+                        </button>
+                      </div>
+                  </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </section>
+    </template>
+
+  </main>
+
+  <div x-show="previewItem" x-transition.opacity @click.self="closeTrailerPreview()" @keydown.escape.window="closeTrailerPreview()" class="filmax-trailer-overlay fixed inset-0 z-20 flex items-center justify-center bg-black" role="presentation">
+    <section class="relative h-full w-full overflow-hidden bg-black" role="dialog" aria-modal="true" :aria-label="'Trailer for ' + (previewItem?.title || '')">
+      <div class="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/80 to-transparent px-4 py-4 sm:px-6">
+        <h2 class="truncate text-lg font-bold text-white" x-text="previewItem?.title"></h2>
+        <button @click="closeTrailerPreview()" aria-label="Close trailer" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white">
+          <i data-lucide="x" class="h-5 w-5"></i>
+        </button>
+      </div>
+      <div class="absolute inset-0 bg-black">
+        <div x-show="previewLoading" class="absolute inset-0 flex items-center justify-center gap-3 text-slate-300" role="status">
+          <span class="filmax-loading-spinner h-6 w-6" aria-hidden="true"></span>
+          <span>Loading trailer...</span>
+        </div>
+        <iframe x-show="previewTrailerKey" :src="previewTrailerKey ? 'https://www.youtube-nocookie.com/embed/' + previewTrailerKey + '?autoplay=1&mute=1&rel=0' : ''" :title="'Trailer for ' + (previewItem?.title || '')" class="absolute inset-0 h-full w-full" allow="autoplay; encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div x-show="previewError" class="absolute inset-0 flex items-center justify-center p-6 text-center text-slate-300" role="status" x-text="previewError"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer x-show="!watchingItem && currentTab !== 'sidebar'" :class="sidebarOpen ? 'md:pl-60' : 'md:pl-20'" class="filmax-footer mt-14">
+    <div class="mx-auto grid max-w-7xl grid-cols-2 gap-x-8 gap-y-10 px-4 py-10 sm:px-6 md:grid-cols-4 md:gap-10 lg:px-8 lg:py-14">
+      <div class="col-span-2 md:col-span-1">
+        <a href="#" @click.prevent="resetFilters()" class="mb-4 inline-flex items-center gap-3" aria-label="FILMAX home">
+          <img src="filmax-logo.svg" alt="" width="40" height="36" loading="lazy" class="h-9 w-10 object-contain" />
+          <span class="text-lg font-extrabold tracking-[0.14em] text-white">FILMAX</span>
+        </a>
+        <p class="max-w-xs text-sm leading-6 text-slate-400">Find your next favorite movie, series, or story. Your next great watch starts here.</p>
+      </div>
+
+      <nav class="flex flex-col items-start gap-3" aria-label="Browse">
+        <h2 class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-white">Browse</h2>
+        <button @click="resetFilters()" class="filmax-footer-link text-sm">Home</button>
+        <button @click="navigateTo('movie')" class="filmax-footer-link text-sm">Movies</button>
+        <button @click="navigateTo('tv')" class="filmax-footer-link text-sm">TV shows</button>
+        <button @click="navigateTo('anime')" class="filmax-footer-link text-sm">Anime</button>
+        <button @click="navigateTo('kids')" class="filmax-footer-link text-sm">Family</button>
+      </nav>
+
+      <nav class="flex flex-col items-start gap-3" aria-label="Your account">
+        <h2 class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-white">Your FILMAX</h2>
+        <button @click="navigateSidebar('library')" class="filmax-footer-link text-sm">My list</button>
+        <a href="auth.html?mode=login" class="filmax-footer-link text-sm">Log in</a>
+        <a href="auth.html?mode=signup" class="filmax-footer-link text-sm">Create account</a>
+      </nav>
+
+      <div class="col-span-2 flex flex-col items-start gap-3 md:col-span-1">
+        <h2 class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-white">About</h2>
+        <p class="text-sm leading-6 text-slate-400">Discover titles from across movies and television, all in one place.</p>
+        <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" class="filmax-footer-link text-sm">Visit TMDB <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+
+    <div class="border-t border-white/10">
+      <div class="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs leading-5 text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+        <p>© <span x-text="new Date().getFullYear()"></span> FILMAX</p>
+        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Title Details Modal -->
+  <div x-show="activeDetails" 
+       x-transition:enter="transition ease-out duration-300"
+       x-transition:enter-start="opacity-0 scale-95"
+       x-transition:enter-end="opacity-100 scale-100"
+       x-transition:leave="transition ease-in duration-200"
+       x-transition:leave-start="opacity-100 scale-100"
+       x-transition:leave-end="opacity-0 scale-95"
+       class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-10 bg-slate-950/90 backdrop-blur-xl">
+    
+    <div class="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" @click.outside="closeDetails()">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+        <div>
+          <h2 class="text-lg font-bold text-white" x-text="activeDetails?.title"></h2>
+          <p class="text-xs text-slate-400" x-text="activeDetails?.genres.join(', ')"></p>
+        </div>
+        <button @click="closeDetails()" class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-800">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Backdrop Image -->
+      <div class="relative aspect-video w-full bg-black">
+        <img :src="activeDetails?.backdrop || activeDetails?.poster" :alt="activeDetails?.title" class="w-full h-full object-cover" />
+      </div>
+
+      <!-- Modal Footer Details -->
+      <div class="p-5 overflow-y-auto space-y-3 bg-slate-900">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xs bg-brand-600/20 text-brand-400 px-2.5 py-1 rounded font-semibold border border-brand-500/30" x-text="'TMDb rating ' + activeDetails?.rating"></span>
+            <span class="text-xs text-slate-400" x-text="activeDetails?.year"></span>
+            <span class="text-xs text-slate-400" x-text="activeDetails?.duration"></span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button @click="toggleWatchlist(activeDetails)" class="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200">
+              <i data-lucide="bookmark" :class="isInWatchlist(activeDetails?.id) ? 'fill-brand-500 text-brand-500' : ''" class="w-4 h-4"></i>
+              <span x-text="isInWatchlist(activeDetails?.id) ? 'Saved' : 'Save Title'"></span>
+            </button>
+            <a :href="'https://www.themoviedb.org/' + activeDetails?.type + '/' + activeDetails?.tmdbId" target="_blank" rel="noopener noreferrer" class="text-xs px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white">View on TMDb</a>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-300 leading-relaxed" x-text="activeDetails?.description"></p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Main Application Script -->
+  <script src="main.js"></script>
+</body>
+</html>

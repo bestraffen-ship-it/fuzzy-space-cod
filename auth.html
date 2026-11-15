@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#050505" />
+  <title>Account | FILMAX</title>
+  <link rel="icon" type="image/svg+xml" href="filmax-logo.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="auth-config.js" defer></script>
+  <script src="auth.js" defer></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-white antialiased">
+  <main class="mx-auto flex min-h-screen w-full max-w-lg items-center px-4 py-10">
+    <section class="w-full rounded-3xl border border-white/10 bg-slate-900/90 p-6 shadow-2xl shadow-black/40 sm:p-8" aria-labelledby="auth-title">
+      <a href="index.html" class="mb-8 inline-flex items-center gap-3 text-sm font-semibold text-slate-300 transition hover:text-white">
+        <img src="filmax-logo.svg" alt="" class="h-10 w-14 object-contain" />
+        <span>Back to FILMAX</span>
+      </a>
+
+      <h1 id="auth-title" class="text-3xl font-black tracking-tight">Welcome to FILMAX</h1>
+      <p id="auth-subtitle" class="mt-2 text-sm text-slate-400"></p>
+
+      <div id="auth-setup" class="mt-6 rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-relaxed text-amber-100" role="status" hidden>
+        Authentication is not configured yet. Add your Supabase project URL and public anon/publishable key in <code>auth-config.js</code>, then enable the providers in Supabase Auth. Never put a service-role key in this file.
+      </div>
+
+      <div id="auth-session" class="mt-6 rounded-xl border border-emerald-300/30 bg-emerald-300/10 p-4 text-sm text-emerald-100" role="status" hidden></div>
+
+      <form id="auth-form" class="mt-6 space-y-4">
+        <label class="block space-y-2 text-sm font-medium text-slate-200">
+          Email
+          <input id="email" name="email" type="email" autocomplete="email" required class="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30" placeholder="you@example.com" />
+        </label>
+        <label class="block space-y-2 text-sm font-medium text-slate-200">
+          Password
+          <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required class="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30" placeholder="At least 8 characters" />
+        </label>
+        <p id="auth-message" class="text-sm text-slate-300" role="status" aria-live="polite"></p>
+        <button id="submit-auth" type="submit" class="w-full rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-pink-600 px-4 py-3 font-bold text-white shadow-lg shadow-violet-950/40 transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 disabled:cursor-not-allowed disabled:opacity-50"></button>
+      </form>
+
+      <div class="my-6 flex items-center gap-3 text-xs uppercase tracking-wider text-slate-500">
+        <span class="h-px flex-1 bg-white/10"></span><span>or continue with</span><span class="h-px flex-1 bg-white/10"></span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" data-provider="google" class="provider-button rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Google</button>
+        <button type="button" data-provider="azure" class="provider-button rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Microsoft</button>
+        <button type="button" data-provider="twitter" class="provider-button rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Twitter / X</button>
+        <button type="button" data-provider="apple" class="provider-button rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Apple</button>
+        <button type="button" data-provider="custom:yahoo" class="provider-button col-span-2 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm font-semibold text-white transition hover:bg-white/10">Yahoo</button>
+      </div>
+
+      <p class="mt-6 text-center text-sm text-slate-400">
+        <span id="mode-prompt"></span>
+        <a id="mode-link" class="font-semibold text-violet-300 underline-offset-4 hover:underline"></a>
+      </p>
+      <p class="mt-5 text-xs leading-relaxed text-slate-500">
+        OAuth providers must be enabled in Supabase and their callback URLs configured. Yahoo uses a Supabase custom provider named <code>custom:yahoo</code>.
+      </p>
+    </section>
+  </main>
+</body>
+</html>
